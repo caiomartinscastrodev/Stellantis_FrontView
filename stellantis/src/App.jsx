@@ -1,122 +1,174 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (!message.trim()) return;
+
+    const userMessage = message;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: userMessage,
+      },
+    ]);
+
+    setMessage("");
+
+    try {
+      const response = await fetch("http://localhost:5069/api/chatstreaming", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao conversar com a IA");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let aiMessage = "";
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "",
+        },
+      ]);
+
+      while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value, {
+          stream: true,
+        });
+
+        aiMessage += chunk;
+
+        setMessages((prev) => {
+          const updated = [...prev];
+
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: aiMessage,
+          };
+
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "500px",
+        margin: "0 auto",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        padding: "20px",
+        boxSizing: "border-box",
+      }}
+    >
+      <h1>Stella IA</h1>
+
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "20px",
+          border: "1px solid #ddd",
+          borderRadius: "10px",
+          marginBottom: "15px",
+        }}
+      >
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            style={{
+              marginBottom: "15px",
+              textAlign: msg.role === "user" ? "right" : "left",
+            }}
+          >
+            {/*
+            <strong>
+              {msg.role === "user" ? "Você" : "IA"}
+            </strong>
+            */}
+
+            <div
+              style={{
+                marginTop: "5px",
+                padding: "10px",
+                display: "inline-block",
+                borderRadius: "10px",
+                background:
+                  msg.role === "user" ? "#007bff" : "#eee",
+                color:
+                  msg.role === "user" ? "white" : "black",
+              }}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: "flex",
+          gap: "10px",
+        }}
+      >
+        <input
+          type="text"
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="Digite sua mensagem..."
+          style={{
+            flex: 1,
+            padding: "15px",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            fontSize: "16px",
+          }}
+        />
+
         <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          type="submit"
+          style={{
+            padding: "0 25px",
+            border: "none",
+            borderRadius: "8px",
+            background: "#007bff",
+            color: "white",
+            cursor: "pointer",
+            fontSize: "16px",
+          }}
         >
-          Count is {count}
+          Enviar
         </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </form>
+    </div>
+  );
 }
-
-export default App
