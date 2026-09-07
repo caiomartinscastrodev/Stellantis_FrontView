@@ -22,7 +22,8 @@ export default function App() {
     setMessage("");
 
     try {
-      const response = await fetch("http://localhost:5069/api/chatstreaming", {
+      //const response = await fetch("api/chatstreaming", {
+      const response = await fetch("http://localhost:5053/api/chatstreaming", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
